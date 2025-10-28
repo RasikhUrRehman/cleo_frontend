@@ -265,7 +265,7 @@ body {
 .chat-interface {
     display: grid;
     grid-template-columns: 320px 1fr;
-    height: 100vh;
+    min-height: 100vh;
 }
 
 /* Sidebar */
@@ -461,7 +461,7 @@ body {
     display: flex;
     flex-direction: column;
     background: var(--bg-color);
-    height: 100vh;
+    min-height: 100vh;
     position: relative;
 }
 

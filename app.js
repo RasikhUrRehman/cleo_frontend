@@ -145,31 +145,57 @@ function updateApiStatus(status) {
 }
 
 function updateSessionStatus(status) {
-    // Update current stage
-    currentStageDisplay.textContent = status.current_stage;
+    if (!status) {
+        console.warn('No status data received');
+        return;
+    }
     
-    // Update progress indicators
-    updateProgressItem(engagementProgress, status.engagement_complete);
-    updateProgressItem(qualificationProgress, status.qualification_complete);
-    updateProgressItem(applicationProgress, status.application_complete);
-    updateProgressItem(verificationProgress, status.verification_complete);
+    // Update current stage
+    if (status.current_stage) {
+        currentStageDisplay.textContent = status.current_stage;
+    }
+    
+    // Update progress indicators with explicit boolean checks
+    updateProgressItem(engagementProgress, status.engagement_complete === true);
+    updateProgressItem(qualificationProgress, status.qualification_complete === true);
+    updateProgressItem(applicationProgress, status.application_complete === true);
+    updateProgressItem(verificationProgress, status.verification_complete === true);
     
     // Show fit score section if application is complete
-    if (status.application_complete) {
+    if (status.application_complete === true) {
         fitScoreSection.style.display = 'block';
         updateFitScore();
     } else {
         fitScoreSection.style.display = 'none';
     }
+    
+    // Log for debugging
+    console.log('UI updated - Stage:', status.current_stage, 'Progress:', {
+        engagement: status.engagement_complete,
+        qualification: status.qualification_complete,
+        application: status.application_complete,
+        verification: status.verification_complete
+    });
 }
 
 function updateProgressItem(element, completed) {
-    if (completed) {
+    if (!element) {
+        console.warn('Progress element not found');
+        return;
+    }
+    
+    const icon = element.querySelector('.progress-icon');
+    if (!icon) {
+        console.warn('Progress icon not found in element');
+        return;
+    }
+    
+    if (completed === true) {
         element.classList.add('completed');
-        element.querySelector('.progress-icon').textContent = '✓';
+        icon.textContent = '✓';
     } else {
         element.classList.remove('completed');
-        element.querySelector('.progress-icon').textContent = '○';
+        icon.textContent = '○';
     }
 }
 
@@ -525,6 +551,14 @@ async function handleStartConversation() {
         // Add Cleo's welcome message (it's already personalized from the API)
         addMessage(sessionData.message, false);
         
+        // Get initial session status and update UI
+        try {
+            const initialStatus = await getSessionStatus();
+            updateSessionStatus(initialStatus);
+        } catch (statusError) {
+            console.error('Error getting initial status:', statusError);
+        }
+        
         // Start status updates
         startStatusUpdates();
         
@@ -586,9 +620,17 @@ async function handleSendMessage(e) {
             addMessage(messageText, false, response.timestamp);
         }
         
-        // Update session status
-        const status = await getSessionStatus();
-        updateSessionStatus(status);
+        // Update session status immediately after message
+        try {
+            const status = await getSessionStatus();
+            if (status) {
+                updateSessionStatus(status);
+                console.log('Progress updated after message:', status.current_stage);
+            }
+        } catch (statusError) {
+            console.error('Error updating status after message:', statusError);
+            // Continue execution even if status update fails
+        }
         
     } catch (error) {
         console.error('Error sending message:', error);
@@ -644,21 +686,38 @@ async function handleResetSession() {
 }
 
 function startStatusUpdates() {
+    // Stop any existing timer first
+    stopStatusUpdates();
+    
     // Initial status check
     checkHealth();
     
     // Update status periodically
     statusUpdateTimer = setInterval(async () => {
         try {
+            // Always check health
             await checkHealth();
+            
+            // Only update session status if we have a session
             if (sessionId) {
-                const status = await getSessionStatus();
-                updateSessionStatus(status);
+                try {
+                    const status = await getSessionStatus();
+                    if (status) {
+                        updateSessionStatus(status);
+                        console.log('Status updated:', status.current_stage);
+                    }
+                } catch (statusError) {
+                    console.error('Error getting session status:', statusError);
+                    // Don't break the interval loop on error
+                }
             }
         } catch (error) {
-            console.error('Error updating status:', error);
+            console.error('Error in status update cycle:', error);
+            // Don't break the interval loop
         }
     }, STATUS_UPDATE_INTERVAL);
+    
+    console.log('Status updates started - will update every', STATUS_UPDATE_INTERVAL / 1000, 'seconds');
 }
 
 function stopStatusUpdates() {
