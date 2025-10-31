@@ -37,6 +37,7 @@ body {
     align-items: center;
     justify-content: center;
     padding: 2rem;
+    overflow-y: auto;
 }
 
 .landing-container {
@@ -266,6 +267,7 @@ body {
     display: grid;
     grid-template-columns: 320px 1fr;
     height: 100vh;
+    overflow: hidden;
 }
 
 /* Sidebar */
@@ -274,7 +276,8 @@ body {
     border-right: 1px solid var(--border-color);
     display: flex;
     flex-direction: column;
-    overflow-y: auto;
+    height: 100vh;
+    overflow: hidden;
 }
 
 .sidebar-header {
@@ -310,6 +313,7 @@ body {
 .status-container {
     flex: 1;
     padding: 1.5rem;
+    overflow-y: auto;
 }
 
 .status-section {
@@ -462,6 +466,7 @@ body {
     flex-direction: column;
     background: var(--bg-color);
     height: 100vh;
+    overflow: hidden;
     position: relative;
 }
 
